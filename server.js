@@ -1,6 +1,9 @@
 'use strict';
 
 const Hapi = require('hapi');
+const unirest = require('unirest');
+
+const base_url = "https://connect.squareup.com/v2";
 
 // Create a server with a host and port
 const server = new Hapi.Server();
