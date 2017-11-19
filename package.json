@@ -1,0 +1,26 @@
+{
+  "name": "hardwarerental",
+  "version": "1.0.0",
+  "description": "Hard ware rental",
+  "main": "server.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "hapi": "^16.6.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kshen3778/HardwareRental.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kshen3778/HardwareRental/issues"
+  },
+  "homepage": "https://github.com/kshen3778/HardwareRental#readme"
+}
