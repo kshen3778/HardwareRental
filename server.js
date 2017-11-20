@@ -45,13 +45,12 @@ server.register(require('vision'), (err) => {
         method: 'GET',
         path:'/hello', 
         handler: function (request, reply) {
-            
             getItem(function(response, error){
         		if (error) {
         			reply(error);
         		} else {
         		    console.log(response.body);
-        			reply(response.body);
+        			reply.view('index', { productname: response.body.object.item_data.name });
         		}
     	    });
     
