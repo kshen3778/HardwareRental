@@ -57,6 +57,21 @@ server.register(require('vision'), (err) => {
         }
         
     });
+    
+    // POS callback route
+    server.route({
+        method: 'GET',
+        path:'/done', 
+        handler: function (request, reply) {
+            console.log(request.query);
+            const uriData = JSON.parse(request.query.data);
+            console.log(uriData);
+        	reply.view('done', { itemId: uriData.transaction_id });
+        }
+        
+    });
+    
+    
 });
 
 // Start the server
