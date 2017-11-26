@@ -4,9 +4,20 @@ const Hapi = require('hapi');
 const Path = require('path');
 const Hoek = require('hoek');
 const unirest = require('unirest');
+const firebase = require("firebase");
 
 const base_url = "https://connect.squareup.com/v2";
 const config = require('./config.json');
+
+const firebaseConfig = {
+    apiKey: config.apiKey,
+    authDomain: config.authDomain,
+    databaseURL: config.databaseURL,
+    projectId: config.projectId,
+    storageBucket: config.storageBucket,
+    messagingSenderId: config.messagingSenderId
+  };
+firebase.initializeApp(firebaseConfig);
 
 // Create a server with a host and port
 const server = new Hapi.Server();
@@ -66,7 +77,47 @@ server.register(require('vision'), (err) => {
             console.log(request.query);
             const uriData = JSON.parse(request.query.data);
             console.log(uriData);
+            
+            //Note: Item id can be passed via note
+            
+            firebase.database().ref('hackers/kshen/signOuts/1025').set({
+                id: "1025"
+            });
+            
         	reply.view('done', { itemId: uriData.transaction_id });
+        }
+        
+    });
+    
+    //firebase add hacker
+    server.route({
+        method: 'GET',
+        path:'/firebaseAdd', 
+        handler: function (request, reply) {
+
+            firebase.database().ref('hackers/kshen').set({
+                email: "kshen3778@gmail.com",
+                signOuts: ["test"]
+            });
+
+        	reply.view('index');
+        }
+        
+    });
+    
+    //firebase add item
+    server.route({
+        method: 'GET',
+        path:'/firebaseAddItem', 
+        handler: function (request, reply) {
+            
+            var productsRef = firebase.database().ref('products/1024');
+            productsRef.set({
+                name: "Muse",
+                id: "1024"
+            });
+
+        	reply.view('index');
         }
         
     });
