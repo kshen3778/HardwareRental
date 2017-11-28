@@ -10,6 +10,8 @@
     "firebase": "^4.6.2",
     "handlebars": "^4.0.11",
     "hapi": "^16.6.2",
+    "openurl": "^1.1.1",
+    "opn": "^5.1.0",
     "unirest": "^0.5.1",
     "vision": "^4.1.1"
   },

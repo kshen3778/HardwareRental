@@ -5,6 +5,8 @@ const Path = require('path');
 const Hoek = require('hoek');
 const unirest = require('unirest');
 const firebase = require("firebase");
+const openurl = require("openurl");
+const opn = require("opn");
 
 const base_url = "https://connect.squareup.com/v2";
 const config = require('./config.json');
@@ -51,20 +53,45 @@ server.register(require('vision'), (err) => {
         path: 'templates'
     });
     
-    // Add the route
+    //firebase add item
     server.route({
         method: 'GET',
+        path:'/', 
+        handler: function (request, reply) {
+
+        	reply.view('enterItem');
+        }
+        
+    });
+    
+    // Add the route
+    server.route({
+        method: 'POST',
         path:'/hello', 
         handler: function (request, reply) {
-            getItem(function(response, error){
-        		if (error) {
-        			reply(error);
-        		} else {
-        		    console.log(response.body);
-        			reply.view('index', { productname: response.body.object.item_data.name });
-        		}
-    	    });
-    
+            
+            
+            var formData = request.payload;
+            console.log(formData);
+            var dataParameter = {
+                "amount_money": {
+                  "amount" : "1.00",
+                  "currency_code" : "CAD"
+                },
+                "callback_url" : "https://hardwarerental-kshen3778.c9users.io/done?" + "hackerid=" + formData.hackerid + "&itemid=" + formData.itemid, // Replace this value with your application's callback URL
+                "client_id" : "sq0idp-BCZe60FZNopeSoM7Zfqlcw", // Replace this value with your application's ID
+                "version": "1.3",
+                "notes": formData.itemid + "," + formData.hackerid,
+                "options" : {
+                  "supported_tender_types" : ["CREDIT_CARD","CASH","OTHER","SQUARE_GIFT_CARD","CARD_ON_FILE"]
+                }
+             
+            };
+            
+            console.log("here");
+            opn('http://google.com');
+        	console.log("finished");
+            reply.view('index', {data: dataParameter});
         }
         
     });
