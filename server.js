@@ -66,32 +66,12 @@ server.register(require('vision'), (err) => {
     
     // Add the route
     server.route({
-        method: 'POST',
+        method: 'GET',
         path:'/hello', 
         handler: function (request, reply) {
             
-            
-            var formData = request.payload;
-            console.log(formData);
-            var dataParameter = {
-                "amount_money": {
-                  "amount" : "1.00",
-                  "currency_code" : "CAD"
-                },
-                "callback_url" : "https://hardwarerental-kshen3778.c9users.io/done?" + "hackerid=" + formData.hackerid + "&itemid=" + formData.itemid, // Replace this value with your application's callback URL
-                "client_id" : "sq0idp-BCZe60FZNopeSoM7Zfqlcw", // Replace this value with your application's ID
-                "version": "1.3",
-                "notes": formData.itemid + "," + formData.hackerid,
-                "options" : {
-                  "supported_tender_types" : ["CREDIT_CARD","CASH","OTHER","SQUARE_GIFT_CARD","CARD_ON_FILE"]
-                }
-             
-            };
-            
-            console.log("here");
-            opn('http://google.com');
-        	console.log("finished");
-            reply.view('index', {data: dataParameter});
+        
+            reply.view('index');
         }
         
     });
@@ -112,6 +92,7 @@ server.register(require('vision'), (err) => {
             });
             
         	reply.view('done', { itemId: uriData.transaction_id });
+        	
         }
         
     });
