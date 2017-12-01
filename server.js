@@ -8,7 +8,8 @@ const firebase = require("firebase");
 const openurl = require("openurl");
 const opn = require("opn");
 
-const base_url = "https://connect.squareup.com/v2";
+const base_urlv2 = "https://connect.squareup.com/v2";
+const base_urlv1 = "https://connect.squareup.com/v1";
 const config = require('./config.json');
 
 const firebaseConfig = {
@@ -28,17 +29,28 @@ server.connection({
     port: 8080 
 });
 
-function getItem(callback) {
-	unirest.get(base_url + '/catalog/object/NRVDGFKWJGOE6H4UY7MKAHGV')
+function getPaymentInfo(transactionId, callback) {
+    
+    unirest.get(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId)
 	.headers({
 		'Authorization': 'Bearer ' + config.squareAccessToken,
 		'Accept': 'application/json'
 	})
 	.end(function(response) {
-        console.log("first response");
-		callback(response, null);
-		return;
-		
+	    console.log(response.raw_body);
+	    var paymentId = JSON.parse(response.raw_body).transaction.tenders[0].id;
+        console.log("Payment Id: " + paymentId);
+        
+		unirest.get(base_urlv1 + "/" + config.squareLocationId + "/payments/" + paymentId)
+    	.headers({
+    		'Authorization': 'Bearer ' + config.squareAccessToken,
+    		'Accept': 'application/json'
+    	})
+    	.end(function(response2) {
+            //console.log(response2.raw_body);
+    		callback(response2.raw_body);
+    		
+    	});
 	});
 }
 
@@ -81,17 +93,26 @@ server.register(require('vision'), (err) => {
         method: 'GET',
         path:'/done', 
         handler: function (request, reply) {
-            console.log(request.query);
+            /*console.log(request.query);
             const uriData = JSON.parse(request.query.data);
-            console.log(uriData);
+            console.log(uriData);*/
             
             //Note: Item id can be passed via note
             
-            firebase.database().ref('hackers/kshen/signOuts/1025').set({
-                id: "1025"
-            });
+            getPaymentInfo("GOOsGLhdrsbHbar5rcTNhV8eV", function(response, error){
+        		if (error) {
+        			reply(error);
+        		} else {
+        		    
+        		    firebase.database().ref('hackers/kshen/signOuts/1025').set({
+                        id: "1025"
+                    });
+        		    console.log(response);
+        			reply.view('done');
+        		}
+    	    });
             
-        	reply.view('done', { itemId: uriData.transaction_id });
+            
         	
         }
         
