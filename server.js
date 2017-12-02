@@ -93,21 +93,28 @@ server.register(require('vision'), (err) => {
         method: 'GET',
         path:'/done', 
         handler: function (request, reply) {
-            /*console.log(request.query);
             const uriData = JSON.parse(request.query.data);
-            console.log(uriData);*/
-            
+            console.log(uriData);
             //Note: Item id can be passed via note
             
-            getPaymentInfo("GOOsGLhdrsbHbar5rcTNhV8eV", function(response, error){
+            getPaymentInfo(uriData.transaction_id, function(response, error){
         		if (error) {
         			reply(error);
         		} else {
         		    
-        		    firebase.database().ref('hackers/kshen/signOuts/1025').set({
-                        id: "1025"
+        		    console.log(JSON.parse(response));
+        		    var note = JSON.parse(response).itemizations[0].notes;
+        		    console.log("Note: " + note);
+        		    var idInfo = note.split(",");
+        		    
+        		    firebase.database().ref('hackers/'+ idInfo[1] +'/signOuts/' + idInfo[0]).set({
+                        id: idInfo[0]
                     });
-        		    console.log(response);
+                    
+                    firebase.database().ref('products/'+ idInfo[0] +'/owner').set({
+                        id: idInfo[1]
+                    });
+        		    
         			reply.view('done');
         		}
     	    });
