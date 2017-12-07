@@ -88,6 +88,28 @@ server.register(require('vision'), (err) => {
         
     });
     
+    server.route({
+        method: 'GET',
+        path:'/return', 
+        handler: function (request, reply) {
+            
+        	reply.view('return');
+        }
+        
+    });
+    
+    //Refund
+    server.route({
+        method: 'POST',
+        path:'/refund', 
+        handler: function (request, reply) {
+            console.log(request.payload);
+            reply.view('return');
+        }
+ 
+        
+    });
+    
     // POS callback route
     server.route({
         method: 'GET',
