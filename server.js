@@ -92,7 +92,6 @@ server.register(require('vision'), (err) => {
         method: 'GET',
         path:'/return', 
         handler: function (request, reply) {
-            
         	reply.view('return');
         }
         
@@ -104,7 +103,49 @@ server.register(require('vision'), (err) => {
         path:'/refund', 
         handler: function (request, reply) {
             console.log(request.payload);
-            reply.view('return');
+            firebase.database().ref('products/'+ request.payload.itemidfield).once('value').then(function(snapshot) {
+              var item = snapshot.val();
+              var transactionId = item.owner.transactionId;
+              console.log(transactionId);
+              unirest.get(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId)
+            	.headers({
+            		'Authorization': 'Bearer ' + config.squareAccessToken,
+            		'Accept': 'application/json'
+            	})
+            	.end(function(response) {
+            	    console.log(response.raw_body);
+                    var tenderId = JSON.parse(response.raw_body).transaction.tenders[0].id;
+                    var amountOfMoney = JSON.parse(response.raw_body).transaction.tenders[0].amount_money.amount;
+                    console.log(tenderId + " " + amountOfMoney);
+                    
+                    var key = new Date().valueOf();
+                    unirest.post(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId + '/refund')
+                        .headers({
+                    		'Authorization': 'Bearer ' + config.squareAccessToken,
+                    		'Accept': 'application/json',
+                    		'Content-Type': 'application/json'
+                    	})
+                        .send({ 
+                              "idempotency_key": ""+key,
+                              "tender_id": ""+tenderId,
+                              "reason": "Returned Hardware",
+                              "amount_money": {
+                                "amount": amountOfMoney,
+                                "currency": "CAD"
+                              }
+                            })
+                        .end(function (response) {
+                          console.log(response.raw_body);
+                          
+                          //remove in Firebase
+                          
+                          
+                          reply.view('return');
+                        });
+                    
+            	});
+            });
+            
         }
  
         
@@ -130,11 +171,13 @@ server.register(require('vision'), (err) => {
         		    var idInfo = note.split(",");
         		    
         		    firebase.database().ref('hackers/'+ idInfo[1] +'/signOuts/' + idInfo[0]).set({
-                        id: idInfo[0]
+                        id: idInfo[0],
+                        transactionId: uriData.transaction_id
                     });
                     
                     firebase.database().ref('products/'+ idInfo[0] +'/owner').set({
-                        id: idInfo[1]
+                        id: idInfo[1],
+                        transactionId: uriData.transaction_id
                     });
         		    
         			reply.view('done');
