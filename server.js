@@ -137,8 +137,13 @@ server.register(require('vision'), (err) => {
                         .end(function (response) {
                           console.log(response.raw_body);
                           
-                          //remove in Firebase
                           
+                          //Get Item owner
+                          var owner = item.owner.id;
+                          
+                          //Remove item from owner and owner from item
+                          firebase.database().ref('hackers/'+ owner +'/signOuts/' + request.payload.itemidfield).remove();
+                          firebase.database().ref('products/'+ request.payload.itemidfield +'/owner').remove();
                           
                           reply.view('return');
                         });
