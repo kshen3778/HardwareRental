@@ -1,18 +1,51 @@
-<h1>Product</h1>
-<script>
-    var dataParameter = {
-        "amount_money": {
-          "amount" : "1.00",
-          "currency_code" : "CAD"
-        },
-        "callback_url" : "https://hardwarerental-kshen3778.c9users.io/done", // Replace this value with your application's callback URL
-        "client_id" : "sq0idp-BCZe60FZNopeSoM7Zfqlcw", // Replace this value with your application's ID
-        "version": "1.3",
-        "notes": "",
-        "options" : {
-          "supported_tender_types" : ["CREDIT_CARD","CASH","OTHER","SQUARE_GIFT_CARD","CARD_ON_FILE"]
-        }
-    };
-  
-  window.location = "square-commerce-v1://payment/create?data=" + encodeURIComponent(JSON.stringify(dataParameter));
-</script>
+<html>
+    
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+        <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/0.12.7/vue.min.js"></script>-->
+        <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/0.1.13/vue-resource.min.js"></script>-->
+        <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.3.5"></script>
+    </head>
+
+    <body>
+        <div id="app">
+            <!--<p>
+             \{{ origin }}
+            </p>
+            <div v-for="(value, key) in origin">
+              {{ key }}: {{ value }}
+            </div>
+            <button v-on:click="getData">Get Data</button>-->
+            
+            {{message}}
+        </div>
+        
+        <script>
+            console.log("here");
+            new Vue({
+              el: '#app',
+
+              data: {
+                message: 'Hello Vue!'
+              },
+        
+              methods: {
+                getData: function () {
+                  this.$http.get('/dashboard').then(response => {
+                        console.log(Object.keys(response.body).length);
+                        // get body data
+                        this.origin = response.body;
+                        console.log(this.origin);
+                    
+                    }, response => {
+                        // error callback
+                  });
+                  
+                }
+              }
+            
+            });
+        </script>
+    </body>
+
+</html>

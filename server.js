@@ -32,7 +32,7 @@ server.connection({
 
 function getPaymentInfo(transactionId, callback) {
     
-    unirest.get(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId)
+  unirest.get(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId)
 	.headers({
 		'Authorization': 'Bearer ' + config.squareAccessToken,
 		'Accept': 'application/json'
@@ -55,6 +55,12 @@ function getPaymentInfo(transactionId, callback) {
 	});
 }
 
+function getAllProducts(callback){
+  firebase.database().ref('products').once('value').then(function(snapshot) {
+    callback(snapshot.val());
+  });
+}
+
 server.register(require('vision'), (err) => {
     Hoek.assert(!err, err);
 
@@ -69,10 +75,20 @@ server.register(require('vision'), (err) => {
     //firebase add item
     server.route({
         method: 'GET',
-        path:'/', 
+        path:'/enter', 
         handler: function (request, reply) {
 
         	reply.view('enterItem');
+        }
+        
+    });
+    
+    server.route({
+        method: 'GET',
+        path:'/', 
+        handler: function (request, reply) {
+
+        	reply.view('index');
         }
         
     });
@@ -219,6 +235,20 @@ server.register(require('vision'), (err) => {
                     
             	});
             });
+        }
+        
+    });
+    
+    //Status Dashboard
+    server.route({
+        method: 'GET',
+        path:'/dashboard', 
+        handler: function (request, reply) {
+          getAllProducts(function(response, error){
+            
+            reply(response);
+          });
+          
         }
         
     });
