@@ -75,20 +75,10 @@ server.register(require('vision'), (err) => {
     //firebase add item
     server.route({
         method: 'GET',
-        path:'/enter', 
-        handler: function (request, reply) {
-
-        	reply.view('enterItem');
-        }
-        
-    });
-    
-    server.route({
-        method: 'GET',
         path:'/', 
         handler: function (request, reply) {
 
-        	reply.view('index');
+        	reply.view('enterItem');
         }
         
     });
@@ -186,6 +176,12 @@ server.register(require('vision'), (err) => {
     server.route({
         method: 'POST',
         path:'/refund', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
           console.log(request.payload);
         	firebase.database().ref('products/'+ request.payload.itemidfield).once('value').then(function(snapshot) {
@@ -230,7 +226,7 @@ server.register(require('vision'), (err) => {
                           firebase.database().ref('hackers/'+ owner +'/signOuts/' + request.payload.itemidfield).remove();
                           firebase.database().ref('products/'+ request.payload.itemidfield +'/owner').remove();
                           
-                          reply.view('refunded');
+                          reply(response.raw_body);
                         });
                     
             	});
@@ -243,6 +239,12 @@ server.register(require('vision'), (err) => {
     server.route({
         method: 'GET',
         path:'/dashboard', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
           getAllProducts(function(response, error){
             
@@ -281,7 +283,8 @@ server.register(require('vision'), (err) => {
                     
                     firebase.database().ref('products/'+ idInfo[0] +'/owner').set({
                         id: idInfo[1],
-                        transactionId: uriData.transaction_id
+                        transactionId: uriData.transaction_id,
+                        returned: false
                     });
         		    
         			reply.view('done');
