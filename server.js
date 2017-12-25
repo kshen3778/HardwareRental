@@ -196,7 +196,7 @@ server.register(require('vision'), (err) => {
             	.end(function(response) {
             	    console.log(response.raw_body);
                     var tenderId = JSON.parse(response.raw_body).transaction.tenders[0].id;
-                    var amountOfMoney = JSON.parse(response.raw_body).transaction.tenders[0].amount_money.amount;
+                    var amountOfMoney = parseInt(request.payload.amount);
                     console.log(tenderId + " " + amountOfMoney);
                     
                     var key = new Date().valueOf();
@@ -268,6 +268,7 @@ server.register(require('vision'), (err) => {
             
             getPaymentInfo(uriData.transaction_id, function(response, error){
         		if (error) {
+        		    console.log("error");
         			reply(error);
         		} else {
         		    
@@ -312,6 +313,17 @@ server.register(require('vision'), (err) => {
         }
         
     });
+    
+    server.route({
+        method: 'GET',
+        path: '/getItem/{itemid}',
+        handler: function(request, reply){
+            firebase.database().ref('products/'+ request.params.itemid).once('value').then(function(snapshot) {
+               
+               reply(snapshot.val()); 
+            });
+        }
+    })
     
     //firebase add item
     server.route({

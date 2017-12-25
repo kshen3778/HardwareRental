@@ -3,6 +3,7 @@
 
   $( document ).ready(function() {
     $( "#theform" ).submit(function( event ) {
+      
       console.log( "ready!" );
       event.preventDefault();
       var itemId = document.getElementById("itemid").value;
@@ -10,21 +11,26 @@
       console.log(itemId);
       console.log(hackerId);
       
+      $.get("/getItem/"+itemId, function(data){
+        
+        console.log(data);
+        
+        var dataParameter = {
+          "amount_money": {
+            "amount" : data.depositValue,
+            "currency_code" : "CAD"
+          },
+          "callback_url" : "https://hardwarerental-kshen3778.c9users.io/done", // Replace this value with your application's callback URL
+          "client_id" : "sq0idp-BCZe60FZNopeSoM7Zfqlcw", // Replace this value with your application's ID
+          "version": "1.3",
+          "notes": itemId + "," + hackerId,
+          "options" : {
+            "supported_tender_types" : ["CREDIT_CARD", "CASH"]
+          }
+        };
+        window.location = "square-commerce-v1://payment/create?data=" + encodeURIComponent(JSON.stringify(dataParameter));
       
-      var dataParameter = {
-        "amount_money": {
-          "amount" : "100",
-          "currency_code" : "CAD"
-        },
-        "callback_url" : "https://hardwarerental-kshen3778.c9users.io/done", // Replace this value with your application's callback URL
-        "client_id" : "sq0idp-BCZe60FZNopeSoM7Zfqlcw", // Replace this value with your application's ID
-        "version": "1.3",
-        "notes": itemId + "," + hackerId,
-        "options" : {
-          "supported_tender_types" : ["CREDIT_CARD", "CASH", "SQUARE_GIFT_CARD","CARD_ON_FILE"]
-        }
-      };
-      window.location = "square-commerce-v1://payment/create?data=" + encodeURIComponent(JSON.stringify(dataParameter));
+      });
     });
   });
     /*alert("Hello world");
