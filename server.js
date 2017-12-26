@@ -12,6 +12,8 @@ const base_urlv2 = "https://connect.squareup.com/v2";
 const base_urlv1 = "https://connect.squareup.com/v1";
 const config = require('./config.json');
 
+var stripe = require("stripe")("sk_test_3CQrKqlt0k8k85z69OrK5Y6A");
+
 const firebaseConfig = {
     apiKey: config.apiKey,
     authDomain: config.authDomain,
@@ -72,18 +74,37 @@ server.register(require('vision'), (err) => {
         path: 'templates'
     });
     
-    //firebase add item
+   
     server.route({
         method: 'GET',
         path:'/', 
         handler: function (request, reply) {
 
-        	reply.view('enterItem');
+        	reply.view('stripePay');
+        }
+        
+    });
+
+    server.route({
+        method: 'POST',
+        path:'/charge', 
+        handler: function (request, reply) {
+            var token = request.payload.stripeToken; // Using Express
+
+            // Create a Customer:
+            stripe.customers.create({
+              email: "paying.user@example.com",
+              source: token,
+            }).then(function(customer) {
+              console.log(customer);
+              reply(customer);
+              
+            });
+
         }
         
     });
     
-    // Add the route
     server.route({
         method: 'GET',
         path:'/hello', 
