@@ -7,6 +7,7 @@ const unirest = require('unirest');
 const firebase = require("firebase");
 const openurl = require("openurl");
 const opn = require("opn");
+var bcrypt = require('bcrypt');
 
 const base_urlv2 = "https://connect.squareup.com/v2";
 const base_urlv1 = "https://connect.squareup.com/v1";
@@ -63,6 +64,7 @@ function getAllProducts(callback){
   });
 }
 
+
 server.register(require('vision'), (err) => {
     Hoek.assert(!err, err);
 
@@ -80,26 +82,50 @@ server.register(require('vision'), (err) => {
         path:'/', 
         handler: function (request, reply) {
 
-        	reply.view('stripePay');
+        	reply.view('newUser');
         }
         
     });
 
     server.route({
         method: 'POST',
-        path:'/charge', 
+        path:'/addUser', 
         handler: function (request, reply) {
-            var token = request.payload.stripeToken; // Using Express
+            console.log(request.payload);
+            var token = request.payload.stripeToken; 
+            
+            bcrypt.genSalt(12, function(err, salt) {
+                bcrypt.hash(request.payload.password, salt, function(err, hash) {
+                  
+                  var usersRef = firebase.database().ref('hackers');
+                  usersRef.child(request.payload.username).once('value', function(snapshot) {
+                    var exists = (snapshot.val() !== null);
+                    if(exists){
+                        reply("User already registered");
+                    }else{
+                        
+                        stripe.customers.create({
+                          email: request.payload.email,
+                          source: token,
+                        }).then(function(customer) {
+                          console.log(customer);
+ 
+                          firebase.database().ref('hackers/'+request.payload.username).set({
+                            username: request.payload.username,
+                            email: request.payload.email,
+                            password: hash,
+                            customerId: customer.id
+                          });
+                          
+                          reply("Success");
+                          
+                        });
+                        
+                    }
+                  });
 
-            // Create a Customer:
-            stripe.customers.create({
-              email: "paying.user@example.com",
-              source: token,
-            }).then(function(customer) {
-              console.log(customer);
-              reply(customer);
-              
-            });
+                }); // end bcrypt.hash
+            }); // end bcrypt.genSalt
 
         }
         
@@ -107,11 +133,38 @@ server.register(require('vision'), (err) => {
     
     server.route({
         method: 'GET',
-        path:'/hello', 
+        path:'/userLogin', 
         handler: function (request, reply) {
             
+            reply.view('login');
+        }
         
-            reply.view('index');
+    });
+    
+    server.route({
+        method: 'POST',
+        path:'/login', 
+        handler: function (request, reply) {
+            
+            console.log(request.payload);
+            
+            var usersRef = firebase.database().ref('hackers');
+            usersRef.child(request.payload.username).once('value', function(snapshot) {
+                    var exists = (snapshot.val() !== null);
+                    if(exists){
+                        bcrypt.compare(request.payload.password, snapshot.val().password, function (err, isValid) {
+                            if(!err && isValid) {
+                              reply.view('profile', {info: snapshot.val()}); // or what ever you want to rply
+                            } else {
+                              reply("Bad Password");
+                            } 
+                        });
+                    }else{
+                        reply("Invalid Username");
+                        
+                    }
+            });
+
         }
         
     });
