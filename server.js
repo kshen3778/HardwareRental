@@ -184,62 +184,20 @@ server.register(require('vision'), (err) => {
     server.route({
         method: 'POST',
         path:'/returnItem', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
             console.log(request.payload);
             
-            firebase.database().ref('products/'+ request.payload.itemidfield +'/owner').update({
+            firebase.database().ref('products/'+ request.payload.itemid +'/owner').update({
                 returned: true
             });
             
-            reply.view('return');
-            
-            /*firebase.database().ref('products/'+ request.payload.itemidfield).once('value').then(function(snapshot) {
-              var item = snapshot.val();
-              var transactionId = item.owner.transactionId;
-              console.log(transactionId);
-              unirest.get(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId)
-            	.headers({
-            		'Authorization': 'Bearer ' + config.squareAccessToken,
-            		'Accept': 'application/json'
-            	})
-            	.end(function(response) {
-            	    console.log(response.raw_body);
-                    var tenderId = JSON.parse(response.raw_body).transaction.tenders[0].id;
-                    var amountOfMoney = JSON.parse(response.raw_body).transaction.tenders[0].amount_money.amount;
-                    console.log(tenderId + " " + amountOfMoney);
-                    
-                    var key = new Date().valueOf();
-                    unirest.post(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId + '/refund')
-                        .headers({
-                    		'Authorization': 'Bearer ' + config.squareAccessToken,
-                    		'Accept': 'application/json',
-                    		'Content-Type': 'application/json'
-                    	})
-                        .send({ 
-                              "idempotency_key": ""+key,
-                              "tender_id": ""+tenderId,
-                              "reason": "Returned Hardware",
-                              "amount_money": {
-                                "amount": amountOfMoney,
-                                "currency": "CAD"
-                              }
-                            })
-                        .end(function (response) {
-                          console.log(response.raw_body);
-                          
-                          
-                          //Get Item owner
-                          var owner = item.owner.id;
-                          
-                          //Remove item from owner and owner from item
-                          firebase.database().ref('hackers/'+ owner +'/signOuts/' + request.payload.itemidfield).remove();
-                          firebase.database().ref('products/'+ request.payload.itemidfield +'/owner').remove();
-                          
-                          reply.view('return');
-                        });
-                    
-            	});
-            }); */
+            reply('Successfully Returned. Please Confirm.');
             
         }
  
@@ -249,7 +207,7 @@ server.register(require('vision'), (err) => {
     
     server.route({
         method: 'POST',
-        path:'/refund', 
+        path:'/returnAndCharge', 
         config: {
             cors: {
                 origin: ['*'],
@@ -257,54 +215,41 @@ server.register(require('vision'), (err) => {
             }
         },
         handler: function (request, reply) {
-          console.log(request.payload);
-        	firebase.database().ref('products/'+ request.payload.itemidfield).once('value').then(function(snapshot) {
-              var item = snapshot.val();
-              var transactionId = item.owner.transactionId;
-              console.log(transactionId);
-              unirest.get(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId)
-            	.headers({
-            		'Authorization': 'Bearer ' + config.squareAccessToken,
-            		'Accept': 'application/json'
-            	})
-            	.end(function(response) {
-            	    console.log(response.raw_body);
-                    var tenderId = JSON.parse(response.raw_body).transaction.tenders[0].id;
-                    var amountOfMoney = parseInt(request.payload.amount);
-                    console.log(tenderId + " " + amountOfMoney);
-                    
-                    var key = new Date().valueOf();
-                    unirest.post(base_urlv2 + '/locations/'+ config.squareLocationId + '/transactions/' + transactionId + '/refund')
-                        .headers({
-                    		'Authorization': 'Bearer ' + config.squareAccessToken,
-                    		'Accept': 'application/json',
-                    		'Content-Type': 'application/json'
-                    	})
-                        .send({ 
-                              "idempotency_key": ""+key,
-                              "tender_id": ""+tenderId,
-                              "reason": "Returned Hardware",
-                              "amount_money": {
-                                "amount": amountOfMoney,
-                                "currency": "CAD"
-                              }
-                            })
-                        .end(function (response) {
-                          console.log(response.raw_body);
-                          
-                          
-                          //Get Item owner
-                          var owner = item.owner.id;
-                          
+            console.log(request.payload);
+            var itemid = request.payload.itemid;
+            var amount = request.payload.amount;
+            
+            firebase.database().ref('products/'+itemid+'/owner').once('value').then(function(snapshot) {
+               var ownerId = snapshot.val().id;
+               
+               if(amount > 0){
+                   //charge Stripe
+                   
+                   //get Email & Customer Id
+                   firebase.database().ref('hackers/'+ownerId).once('value').then(function(snapshot) {
+                       stripe.charges.create({
+                        amount: parseInt(amount+"00"),
+                        currency: "cad",
+                        customer: snapshot.val().customerId,
+                       },function(err, charge) {
+                          console.log(charge);
                           //Remove item from owner and owner from item
-                          firebase.database().ref('hackers/'+ owner +'/signOuts/' + request.payload.itemidfield).remove();
-                          firebase.database().ref('products/'+ request.payload.itemidfield +'/owner').remove();
-                          
-                          reply(response.raw_body);
-                        });
-                    
-            	});
+                          firebase.database().ref('hackers/'+ ownerId +'/signOuts/' + itemid).remove();
+                          firebase.database().ref('products/'+ itemid +'/owner').remove();
+                          reply("Success. User has been Charged.");
+                       });
+                       
+                   });
+               }else{
+                   //Remove item from owner and owner from item
+                    firebase.database().ref('hackers/'+ ownerId +'/signOuts/' + itemid).remove();
+                    firebase.database().ref('products/'+ itemid +'/owner').remove();
+                    reply("Success");
+               }
             });
+            
+
+                        
         }
         
     });
@@ -333,38 +278,49 @@ server.register(require('vision'), (err) => {
     
     // POS callback route
     server.route({
-        method: 'GET',
-        path:'/done', 
+        method: 'POST',
+        path:'/signOut', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
-            const uriData = JSON.parse(request.query.data);
-            console.log(uriData);
-            //Note: Item id can be passed via note
             
-            getPaymentInfo(uriData.transaction_id, function(response, error){
-        		if (error) {
-        		    console.log("error");
-        			reply(error);
-        		} else {
-        		    
-        		    console.log(JSON.parse(response));
-        		    var note = JSON.parse(response).itemizations[0].notes;
-        		    console.log("Note: " + note);
-        		    var idInfo = note.split(",");
-        		    
-        		    firebase.database().ref('hackers/'+ idInfo[1] +'/signOuts/' + idInfo[0]).set({
-                        id: idInfo[0],
-                        transactionId: uriData.transaction_id
-                    });
-                    
-                    firebase.database().ref('products/'+ idInfo[0] +'/owner').set({
-                        id: idInfo[1],
-                        transactionId: uriData.transaction_id,
-                        returned: false
-                    });
-        		    
-        			reply.view('done');
-        		}
-    	    });
+            var usersRef = firebase.database().ref('hackers');
+            usersRef.child(request.payload.user).once('value', function(snapshot) {
+                    var exists = (snapshot.val() !== null);
+                    if(exists){
+                        var itemsRef = firebase.database().ref('products');
+                        itemsRef.child(request.payload.itemid).once('value', function(snapshot) {
+                                var exists = (snapshot.val() !== null);
+                                if(exists){
+                                    var userId = request.payload.user;
+                                    var itemId = request.payload.itemid;
+                                    firebase.database().ref('hackers/'+ userId +'/signOuts/' + itemId).set({
+                                        id: itemId
+                                    });
+                                            
+                                    firebase.database().ref('products/'+ itemId +'/owner').set({
+                                        id: userId,
+                                        returned: false
+                                    });
+                                    
+                                    reply("Signout Successful");
+                                }else{
+                                    
+                                    reply("Error. No Such Item.");
+                                    
+                                }
+                        });
+                    }else{
+                        
+                        reply("Error. No Such User.");
+                        
+                    }
+            });
+        	
             
             
         	
