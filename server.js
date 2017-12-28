@@ -357,17 +357,64 @@ server.register(require('vision'), (err) => {
     
     //firebase add item
     server.route({
-        method: 'GET',
-        path:'/firebaseAddItem', 
+        method: 'POST',
+        path:'/addItem', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
+            console.log(request.payload);
+            var itemid = request.payload.itemid;
+            var name = request.payload.name;
+            var value = request.payload.value;
             
-            var productsRef = firebase.database().ref('products/1024');
-            productsRef.set({
-                name: "Muse",
-                id: "1024"
+            var usersRef = firebase.database().ref('products');
+            usersRef.child(itemid).once('value', function(snapshot) {
+                    var exists = (snapshot.val() !== null);
+                    if(exists){
+                        reply("Item already Exists.");
+                    }else{
+                        firebase.database().ref('products/'+ itemid).set({
+                            id: itemid,
+                            name: name,
+                            value: value
+                        });
+                        
+                        reply("Item Added!");
+                        
+                    }
             });
-
-        	reply.view('index');
+        }
+    });
+    
+    server.route({
+        method: 'POST',
+        path:'/removeItem', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
+        handler: function (request, reply) {
+            console.log(request.payload);
+            var itemid = request.payload.itemid;
+            
+            var usersRef = firebase.database().ref('products');
+            usersRef.child(itemid).once('value', function(snapshot) {
+                    var exists = (snapshot.val() !== null);
+                    if(exists){
+                        firebase.database().ref('products/'+ itemid).remove();
+                        reply("Item Removed!");
+                    }else{
+                        
+                        reply("Item does not exist.");
+                        
+                    }
+            });
         }
         
     });
