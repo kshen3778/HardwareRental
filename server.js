@@ -81,7 +81,6 @@ server.register(require('vision'), (err) => {
         method: 'GET',
         path:'/', 
         handler: function (request, reply) {
-
         	reply.view('newUser');
         }
         
@@ -94,7 +93,30 @@ server.register(require('vision'), (err) => {
             console.log(request.payload);
             var token = request.payload.stripeToken; 
             
-            bcrypt.genSalt(12, function(err, salt) {
+            firebase.auth().createUserWithEmailAndPassword(request.payload.email, request.payload.password).then(function(){
+              stripe.customers.create({
+                          email: request.payload.email,
+                          source: token,
+                        }).then(function(customer) {
+                          console.log(customer);
+ 
+                          firebase.database().ref('hackers/'+request.payload.username).set({
+                            username: request.payload.username,
+                            email: request.payload.email,
+                            customerId: customer.id
+                          });
+                          
+                          reply("Success");
+                          
+              });
+            }).catch(function(error) {
+              // Handle Errors here.
+              var errorCode = error.code;
+              var errorMessage = error.message;
+              // ...
+            });
+            
+            /*bcrypt.genSalt(12, function(err, salt) {
                 bcrypt.hash(request.payload.password, salt, function(err, hash) {
                   
                   var usersRef = firebase.database().ref('hackers');
@@ -126,7 +148,7 @@ server.register(require('vision'), (err) => {
 
                 }); // end bcrypt.hash
             }); // end bcrypt.genSalt
-
+            */
         }
         
     });
@@ -148,7 +170,18 @@ server.register(require('vision'), (err) => {
             
             console.log(request.payload);
             
-            var usersRef = firebase.database().ref('hackers');
+            firebase.auth().signInWithEmailAndPassword(request.payload.email, request.payload.password).then(function(){
+                console.log(firebase.auth().currentUser.email);
+                reply.view('profile', {info: firebase.auth().currentUser});
+            }).catch(function(error) {
+                          // Handle Errors here.
+                          var errorCode = error.code;
+                          var errorMessage = error.message;
+                          reply(errorMessage);
+                          // ...
+            });
+            
+            /*var usersRef = firebase.database().ref('hackers');
             usersRef.child(request.payload.username).once('value', function(snapshot) {
                     var exists = (snapshot.val() !== null);
                     if(exists){
@@ -159,11 +192,12 @@ server.register(require('vision'), (err) => {
                               reply("Bad Password");
                             } 
                         });
+                        
                     }else{
                         reply("Invalid Username");
                         
                     }
-            });
+            });*/
 
         }
         
