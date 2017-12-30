@@ -116,39 +116,34 @@ server.register(require('vision'), (err) => {
               // ...
             });
             
-            /*bcrypt.genSalt(12, function(err, salt) {
-                bcrypt.hash(request.payload.password, salt, function(err, hash) {
-                  
-                  var usersRef = firebase.database().ref('hackers');
-                  usersRef.child(request.payload.username).once('value', function(snapshot) {
-                    var exists = (snapshot.val() !== null);
-                    if(exists){
-                        reply("User already registered");
-                    }else{
-                        
-                        stripe.customers.create({
-                          email: request.payload.email,
-                          source: token,
-                        }).then(function(customer) {
-                          console.log(customer);
- 
-                          firebase.database().ref('hackers/'+request.payload.username).set({
-                            username: request.payload.username,
-                            email: request.payload.email,
-                            password: hash,
-                            customerId: customer.id
-                          });
-                          
-                          reply("Success");
-                          
-                        });
-                        
-                    }
-                  });
+        }
+        
+    });
+    
+    server.route({
+        method: 'POST',
+        path:'/updateCard', 
+        handler: function (request, reply) {
+            console.log(firebase.auth().currentUser.email);
+            
+            firebase.database().ref('hackers').orderByChild('email').equalTo(firebase.auth().currentUser.email).on("value", function(snapshot) {
+                console.log(snapshot.val());
+                var keys = Object.keys(snapshot.val());
+                console.log(keys[0]);
+                var username = keys[0];
+                
+                var customerid = snapshot.val()[username].customerId;
+                console.log(customerid);
+                stripe.customers.update(customerid, {
+                    source: request.payload.stripeToken
+                }, function(err, customer) {
+                    console.log("Successfully Updated Card");
+                    console.log(customer);
+                    reply("Success");
+                });
 
-                }); // end bcrypt.hash
-            }); // end bcrypt.genSalt
-            */
+            });
+        	
         }
         
     });
