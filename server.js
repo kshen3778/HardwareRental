@@ -107,14 +107,24 @@ server.register(require('vision'), (err) => {
                               console.log(customer);
      
                             firebase.database().ref('hackers/'+request.payload.username).set({
-                            username: request.payload.username,
-                            email: request.payload.email,
-                            customerId: customer.id
-                }).catch(function(error){
-                    console.log(error);
-                });
+                                username: request.payload.username,
+                                email: request.payload.email,
+                                customerId: customer.id
+                            }).catch(function(error){
+                                console.log(error);
+                            });
+                          var user = firebase.auth().currentUser;
+                          user.updateProfile({
+                              displayName: request.payload.username,
+                            }).then(function() {
+                              // Update successful.
+                              reply("Success");
+                            }).catch(function(error) {
+                              // An error happened.
+                              console.log(error);
+                          });
+
                           
-                          reply("Success");
                           
               });
             }).catch(function(error) {
@@ -160,10 +170,17 @@ server.register(require('vision'), (err) => {
     
     server.route({
         method: 'GET',
-        path:'/userLogin', 
+        path:'/getCurrentUser',
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
-            
-            reply.view('login');
+            var user = firebase.auth().currentUser;
+            console.log(user);
+            reply(user);
         }
         
     });
@@ -171,13 +188,19 @@ server.register(require('vision'), (err) => {
     server.route({
         method: 'POST',
         path:'/login', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
             
             console.log(request.payload);
             
             firebase.auth().signInWithEmailAndPassword(request.payload.email, request.payload.password).then(function(){
                 console.log(firebase.auth().currentUser.email);
-                reply.view('profile', {info: firebase.auth().currentUser});
+                reply(firebase.auth().currentUser);
             }).catch(function(error) {
                           // Handle Errors here.
                           var errorCode = error.code;
