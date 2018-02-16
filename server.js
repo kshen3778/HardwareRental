@@ -89,22 +89,30 @@ server.register(require('vision'), (err) => {
     server.route({
         method: 'POST',
         path:'/addUser', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
-            console.log(request.payload);
+            console.log(request.payload.stripeToken);
             var token = request.payload.stripeToken; 
             
             firebase.auth().createUserWithEmailAndPassword(request.payload.email, request.payload.password).then(function(){
               stripe.customers.create({
                           email: request.payload.email,
                           source: token,
-                        }).then(function(customer) {
-                          console.log(customer);
- 
-                          firebase.database().ref('hackers/'+request.payload.username).set({
+                }).then(function(customer) {
+                              console.log(customer);
+     
+                            firebase.database().ref('hackers/'+request.payload.username).set({
                             username: request.payload.username,
                             email: request.payload.email,
                             customerId: customer.id
-                          });
+                }).catch(function(error){
+                    console.log(error);
+                });
                           
                           reply("Success");
                           
@@ -113,6 +121,8 @@ server.register(require('vision'), (err) => {
               // Handle Errors here.
               var errorCode = error.code;
               var errorMessage = error.message;
+              console.log(errorCode);
+              console.log(errorMessage);
               // ...
             });
             
