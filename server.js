@@ -118,7 +118,16 @@ server.register(require('vision'), (err) => {
                               displayName: request.payload.username,
                             }).then(function() {
                               // Update successful.
-                              reply("Success");
+                              
+                              //Send Verification email
+                              user.sendEmailVerification().then(function() {
+                                  // Email sent.
+                                  reply("Success. Verification sent to email. Please confirm.");
+                                }).catch(function(error) {
+                                  // An error happened.
+                                  console.log(error);
+                                });
+                              
                             }).catch(function(error) {
                               // An error happened.
                               console.log(error);
@@ -143,6 +152,12 @@ server.register(require('vision'), (err) => {
     server.route({
         method: 'POST',
         path:'/updateCard', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
         handler: function (request, reply) {
             console.log(firebase.auth().currentUser.email);
             
@@ -200,7 +215,21 @@ server.register(require('vision'), (err) => {
             
             firebase.auth().signInWithEmailAndPassword(request.payload.email, request.payload.password).then(function(){
                 console.log(firebase.auth().currentUser.email);
-                reply(firebase.auth().currentUser);
+                var user = firebase.auth().currentUser;
+                if(user.emailVerified == true){
+                    reply(firebase.auth().currentUser);
+                }else{
+                    //Tell user to verify their email first
+                    
+                    firebase.auth().signOut().then(function() {
+                      // Sign-out successful.
+                      reply("Please verify first with the link sent to your email.")
+                    }).catch(function(error) {
+                      // An error happened.
+                      console.log(error);
+                    });
+                }
+                
             }).catch(function(error) {
                           // Handle Errors here.
                           var errorCode = error.code;
