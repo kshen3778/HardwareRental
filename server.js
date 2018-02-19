@@ -151,6 +151,33 @@ server.register(require('vision'), (err) => {
     
     server.route({
         method: 'POST',
+        path:'/resetPassword', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
+        handler: function (request, reply) {
+            console.log(request.payload.email);
+            
+            var auth = firebase.auth();
+            var email = request.payload.email;
+            
+            auth.sendPasswordResetEmail(email).then(function() {
+              // Email sent.
+              reply("Password reset email sent. Check inbox.")
+            }).catch(function(error) {
+              // An error happened.
+              console.log(error);
+            });
+        	
+        }
+        
+    });
+    
+    server.route({
+        method: 'POST',
         path:'/updateCard', 
         config: {
             cors: {
