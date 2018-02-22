@@ -325,7 +325,7 @@ server.register(require('vision'), (err) => {
     
     server.route({
         method: 'POST',
-        path:'/returnAndCharge', 
+        path:'/confirmReturn', 
         config: {
             cors: {
                 origin: ['*'],
@@ -335,35 +335,14 @@ server.register(require('vision'), (err) => {
         handler: function (request, reply) {
             console.log(request.payload);
             var itemid = request.payload.itemid;
-            var amount = request.payload.amount;
             
             firebase.database().ref('products/'+itemid+'/owner').once('value').then(function(snapshot) {
-               var ownerId = snapshot.val().id;
-               
-               if(amount > 0){
-                   //charge Stripe
-                   
-                   //get Email & Customer Id
-                   firebase.database().ref('hackers/'+ownerId).once('value').then(function(snapshot) {
-                       stripe.charges.create({
-                        amount: parseInt(amount+"00"),
-                        currency: "cad",
-                        customer: snapshot.val().customerId,
-                       },function(err, charge) {
-                          console.log(charge);
-                          //Remove item from owner and owner from item
-                          firebase.database().ref('hackers/'+ ownerId +'/signOuts/' + itemid).remove();
-                          firebase.database().ref('products/'+ itemid +'/owner').remove();
-                          reply("Success. User has been Charged.");
-                       });
-                       
-                   });
-               }else{
+                    var ownerId = snapshot.val().id;
                    //Remove item from owner and owner from item
                     firebase.database().ref('hackers/'+ ownerId +'/signOuts/' + itemid).remove();
                     firebase.database().ref('products/'+ itemid +'/owner').remove();
-                    reply("Success");
-               }
+                    reply("Success. Item Returned.");
+              
             });
             
 
@@ -387,6 +366,62 @@ server.register(require('vision'), (err) => {
             
             reply(response);
           });
+          
+        }
+        
+    });
+    
+    //Users Dashboard for Admin
+    server.route({
+        method: 'GET',
+        path:'/users', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
+        handler: function (request, reply) {
+          firebase.database().ref('hackers').once('value').then(function(snapshot) {
+            reply(snapshot.val());
+          });
+          
+        }
+        
+    });
+    
+    //Charge a user
+    server.route({
+        method: 'POST',
+        path:'/charge', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
+        handler: function (request, reply) {
+            var ownerId = request.payload.userid;
+            var amount = request.payload.amount;
+            
+            if(amount > 0){
+                   //charge Stripe
+                   
+                   //get Email & Customer Id
+                   firebase.database().ref('hackers/'+ownerId).once('value').then(function(snapshot) {
+                       stripe.charges.create({
+                        amount: parseInt(amount+"00"),
+                        currency: "cad",
+                        customer: snapshot.val().customerId,
+                       },function(err, charge) {
+                          console.log(charge);
+                          reply("Success. User has been Charged.");
+                       });
+                       
+                   });
+             }else{
+                    reply("Please enter a positive number.");
+             }
           
         }
         
