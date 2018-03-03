@@ -311,11 +311,19 @@ server.register(require('vision'), (err) => {
         handler: function (request, reply) {
             console.log(request.payload);
             
-            firebase.database().ref('products/'+ request.payload.itemid +'/owner').update({
+            /*firebase.database().ref('products/'+ request.payload.itemid +'/owner').update({
                 returned: true
+            });*/
+            
+            firebase.database().ref('products/'+request.payload.itemid+'/owner').once('value').then(function(snapshot) {
+                    var ownerId = snapshot.val().id;
+                   //Remove item from owner and owner from item
+                    firebase.database().ref('hackers/'+ ownerId +'/signOuts/' + request.payload.itemid).remove();
+                    firebase.database().ref('products/'+ request.payload.itemid +'/owner').remove();
+                    reply("Success. Item Returned.");
+              
             });
             
-            reply('Successfully Returned. Please Confirm.');
             
         }
  
@@ -428,6 +436,19 @@ server.register(require('vision'), (err) => {
     });
     
     
+    function snapshotToArray(snapshot) {
+        var returnArr = [];
+    
+        snapshot.forEach(function(childSnapshot) {
+            var item = childSnapshot.val();
+            item.key = childSnapshot.key;
+    
+            returnArr.push(item);
+        });
+    
+        return returnArr;
+    };
+    
     
     // POS callback route
     server.route({
@@ -440,9 +461,44 @@ server.register(require('vision'), (err) => {
             }
         },
         handler: function (request, reply) {
-            
             var usersRef = firebase.database().ref('hackers');
-            usersRef.child(request.payload.user).once('value', function(snapshot) {
+            
+            usersRef.orderByChild('email').equalTo(request.payload.user).once('value', function(snapshot) {
+                var snap = snapshotToArray(snapshot);
+                console.log(snap);
+                var exists = (snapshot.val() !== null);
+                if(exists){
+                        var itemsRef = firebase.database().ref('products');
+                        itemsRef.child(request.payload.itemid).once('value', function(snapshot) {
+                                var exists = (snapshot.val() !== null);
+                                if(exists){
+                                    var userId = snap[0].username;
+                                    var itemId = request.payload.itemid;
+                                    firebase.database().ref('hackers/'+ userId +'/signOuts/' + itemId).set({
+                                        id: itemId
+                                    });
+                                            
+                                    firebase.database().ref('products/'+ itemId +'/owner').set({
+                                        id: userId,
+                                        email: snap[0].email
+                                    });
+                                    
+                                    reply("Signout Successful");
+                                }else{
+                                    
+                                    reply("Error. No Such Item.");
+                                    
+                                }
+                        });
+                    }else{
+                        
+                        reply("Error. No Such User.");
+                        
+                    }
+            });
+            
+            
+            /*usersRef.child(request.payload.user).once('value', function(snapshot) {
                     var exists = (snapshot.val() !== null);
                     if(exists){
                         var itemsRef = firebase.database().ref('products');
@@ -472,7 +528,7 @@ server.register(require('vision'), (err) => {
                         reply("Error. No Such User.");
                         
                     }
-            });
+            });*/
         	
             
             
@@ -571,6 +627,69 @@ server.register(require('vision'), (err) => {
         }
         
     });
+    
+    server.route({
+        method: 'POST',
+        path:'/createUser', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
+        handler: function (request, reply) {
+            console.log(request.payload);
+            var userid = request.payload.id;
+            var email = request.payload.email;
+            
+            var usersRef = firebase.database().ref('hackers');
+            usersRef.child(userid).once('value', function(snapshot) {
+                    var exists = (snapshot.val() !== null);
+                    if(exists){
+                        reply("User ID already Exists.");
+                    }else{
+                        firebase.database().ref('hackers/'+ userid).set({
+                            username: userid,
+                            email: email
+                        });
+                        
+                        reply("User Added!");
+                        
+                    }
+            });
+        }
+    });
+    
+    server.route({
+        method: 'POST',
+        path:'/removeUser', 
+        config: {
+            cors: {
+                origin: ['*'],
+                additionalHeaders: ['cache-control', 'x-requested-with']
+            }
+        },
+        handler: function (request, reply) {
+            console.log(request.payload);
+            var userid = request.payload.id;
+            
+            var usersRef = firebase.database().ref('hackers');
+            usersRef.child(userid).once('value', function(snapshot) {
+                    var exists = (snapshot.val() !== null);
+                    if(exists){
+                        firebase.database().ref('hackers/'+ userid).remove();
+                        reply("User Removed!");
+                    }else{
+                        
+                        reply("User ID does not exist.");
+                        
+                    }
+            });
+        }
+        
+    });
+    
+    
     
     //Populate Items from Spreadsheet
     server.route({
