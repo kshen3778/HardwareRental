@@ -317,11 +317,18 @@ server.register(require('vision'), (err) => {
             
             firebase.database().ref('products/'+request.payload.itemid+'/owner').once('value').then(function(snapshot) {
                     var ownerId = snapshot.val().id;
-                   //Remove item from owner and owner from item
-                    firebase.database().ref('hackers/'+ ownerId +'/signOuts/' + request.payload.itemid).remove();
-                    firebase.database().ref('products/'+ request.payload.itemid +'/owner').remove();
-                    reply("Item Returned.");
+                    console.log(ownerId);
+                    if(ownerId !== null){
+                        //Remove item from owner and owner from item
+                        firebase.database().ref('hackers/'+ ownerId +'/signOuts/' + request.payload.itemid).remove();
+                        firebase.database().ref('products/'+ request.payload.itemid +'/owner').remove();
+                        reply("Item Returned.");
+                    }else{
+                        reply("Item not signed out");
+                    }
               
+            }).catch(function(error){
+                reply("Error: Item not signed out");
             });
             
         }
@@ -471,18 +478,23 @@ server.register(require('vision'), (err) => {
                         itemsRef.child(request.payload.itemid).once('value', function(snapshot) {
                                 var exists = (snapshot.val() !== null);
                                 if(exists){
-                                    var userId = snap[0].username;
-                                    var itemId = request.payload.itemid;
-                                    firebase.database().ref('hackers/'+ userId +'/signOuts/' + itemId).set({
-                                        id: itemId
-                                    });
-                                            
-                                    firebase.database().ref('products/'+ itemId +'/owner').set({
-                                        id: userId,
-                                        email: snap[0].email
-                                    });
-                                    
-                                    reply("Signout Successful");
+                                    console.log(snapshot.val());
+                                    if(snapshot.val().owner == null){
+                                        var userId = snap[0].username;
+                                        var itemId = request.payload.itemid;
+                                        firebase.database().ref('hackers/'+ userId +'/signOuts/' + itemId).set({
+                                            id: itemId
+                                        });
+                                                
+                                        firebase.database().ref('products/'+ itemId +'/owner').set({
+                                            id: userId,
+                                            email: snap[0].email
+                                        });
+                                        
+                                        reply("Signout Successful");
+                                    }else{
+                                        reply("Item already signed out.");
+                                    }
                                 }else{
                                     
                                     reply("Error. No Such Item.");
