@@ -320,10 +320,9 @@ server.register(require('vision'), (err) => {
                    //Remove item from owner and owner from item
                     firebase.database().ref('hackers/'+ ownerId +'/signOuts/' + request.payload.itemid).remove();
                     firebase.database().ref('products/'+ request.payload.itemid +'/owner').remove();
-                    reply("Success. Item Returned.");
+                    reply("Item Returned.");
               
             });
-            
             
         }
  
