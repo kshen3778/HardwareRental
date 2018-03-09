@@ -479,7 +479,7 @@ server.register(require('vision'), (err) => {
                                 var exists = (snapshot.val() !== null);
                                 if(exists){
                                     console.log(snapshot.val());
-                                    if(snapshot.val().owner == null){
+                                    if(!snapshot.val().hasOwnProperty('owner')){
                                         var userId = snap[0].username;
                                         var itemId = request.payload.itemid;
                                         firebase.database().ref('hackers/'+ userId +'/signOuts/' + itemId).set({
